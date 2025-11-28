@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build Secure Server — Demo</title>
+<style>
+  :root{
+    --bg:#0f1724;
+    --card:#0b1220;
+    --muted:#98a0b3;
+    --accent:#1db954;
+    --glass: rgba(255,255,255,0.04);
+    --white: #e6eef8;
+  }
+  html,body{height:100%;margin:0;font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:linear-gradient(180deg,#071023 0%, #081426 100%); color:var(--white);}
+  .wrap{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;}
+  /* iPhone-like viewport */
+  .device{
+    width:375px; max-width:100%; height:812px; border-radius:34px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    box-shadow: 0 20px 60px rgba(2,6,23,0.7), inset 0 1px 0 rgba(255,255,255,0.02);
+    overflow:hidden; position:relative; border:1px solid rgba(255,255,255,0.03);
+  }
+  .screen{padding:22px; box-sizing:border-box; height:100%; display:flex; flex-direction:column;}
+  header{display:flex; align-items:center; gap:12px;}
+  .logo-circle{width:44px;height:44px;border-radius:10px;background:linear-gradient(180deg,#0f2133,#071428);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.03);}
+  .logo-circle span{font-weight:600;color:var(--muted);font-size:12px;}
+  h1{font-size:18px;margin:0;line-height:1.05;}
+  p.lead{margin:6px 0 18px;color:var(--muted);font-size:13px;}
+  .card{background:var(--card); border-radius:14px; padding:16px; box-shadow: 0 6px 18px rgba(3,8,20,0.6); margin-bottom:12px; border:1px solid rgba(255,255,255,0.02);}
+  label{display:block;font-size:12px;color:var(--muted); margin-bottom:6px;}
+  input[type="text"], input[type="number"], select{
+    width:100%; padding:12px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.04); background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
+    color:var(--white); font-size:14px; box-sizing:border-box;
+  }
+  .row{display:flex; gap:10px;}
+  .btn{
+    display:inline-block;padding:10px 14px;border-radius:10px;background:linear-gradient(90deg,var(--accent),#18b44b);color:#042018;font-weight:700;border:none;cursor:pointer;margin-top:8px;
+    box-shadow: 0 6px 14px rgba(29,185,84,0.12);
+  }
+  .btn.secondary{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.03); box-shadow:none;}
+  .muted{color:var(--muted);font-size:13px;}
+  .hidden{display:none;}
+  .progress{
+    height:10px;background:rgba(255,255,255,0.03);border-radius:999px;overflow:hidden;margin-top:8px;
+  }
+  .progress > i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#2fe070);transition:width 0.3s;}
+  .status{font-size:13px;margin-top:10px;color:var(--muted);}
+  .center{display:flex;align-items:center;justify-content:center;}
+  .circle-loader{width:84px;height:84px;border-radius:50%;border:8px solid rgba(255,255,255,0.06);border-top-color:var(--accent); animation:spin 1s linear infinite; margin:18px auto;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .final{padding:14px;border-radius:12px;background:linear-gradient(180deg, rgba(29,185,84,0.08), rgba(29,185,84,0.03)); color:#dff9ec; font-weight:600; text-align:center;}
+  footer{margin-top:auto;padding-top:12px;font-size:11px;color:var(--muted); text-align:center;}
+  .disclaimer{font-size:11px;color:#ffd6d6;background:rgba(255,30,30,0.04);padding:8px;border-radius:8px;margin-top:8px;color:#ffd6d6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="device" role="application" aria-label="Secure Server Demo">
+    <div class="screen">
+      <header>
+        <div class="logo-circle"><span>DEMO</span></div>
+        <div>
+          <h1>Build Secure Server — Demo</h1>
+          <p class="lead">Demo interface for secure server activation — <strong>not affiliated with any company</strong>.</p>
+        </div>
+      </header>
+
+      <div class="card" id="step-input">
+        <label for="ip">Put your IP address</label>
+        <input id="ip" type="text" placeholder="e.g. 192.168.1.12">
+
+        <label style="margin-top:12px" for="sec">Put 6-digit security code to run server</label>
+        <input id="sec" type="number" inputmode="numeric" placeholder="6-digit code">
+
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn" id="runBtn">Run Scan</button>
+          <button class="btn secondary" id="resetBtn">Reset</button>
+        </div>
+
+        <div id="scanArea" class="hidden" style="margin-top:12px;">
+          <div class="muted">Scan status</div>
+          <div class="progress"><i id="progressBar"></i></div>
+          <div class="status" id="scanStatus">Waiting...</div>
+        </div>
+
+        <div id="durationArea" class="hidden" style="margin-top:12px;">
+          <label for="duration">Choose hour duration for server</label>
+          <select id="duration" aria-label="Choose duration">
+            <option value="0-1">0-1</option>
+            <option value="1-2">1-2</option>
+            <option value="2-3">2-3</option>
+            <option value="3-4">3-4</option>
+            <option value="4-5">4-5</option>
+            <option value="5-6">5-6</option>
+            <option value="6-7">6-7</option>
+            <option value="7-8">7-8</option>
+            <option value="8-9">8-9</option>
+            <option value="9-10">9-10</option>
+            <option value="10-11">10-11</option>
+            <option value="11-12">11-12</option>
+            <option value="12-13">12-13</option>
+            <option value="13-14">13-14</option>
+            <option value="14-15">14-15</option>
+          </select>
+        </div>
+
+        <div id="caseArea" class="hidden" style="margin-top:12px;">
+          <label for="caseid">Enter case ID number</label>
+          <input id="caseid" type="number" placeholder="Enter case ID">
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn" id="activateBtn">Activate</button>
+            <button class="btn secondary" id="cancelBtn">Cancel</button>
+          </div>
+        </div>
+
+        <div id="loaderArea" class="hidden center" style="flex-direction:column;">
+          <div class="circle-loader" aria-hidden="true"></div>
+          <div class="muted">Finalizing activation...</div>
+        </div>
+
+        <div id="finalMsg" class="hidden" style="margin-top:12px;">
+          <div class="final" id="finalText"></div>
+        </div>
+
+        <div class="disclaimer" style="margin-top:12px;">
+          This is a simulated demo page for user testing and educational purposes only. It is <strong>not</strong> an official page and is not affiliated with any company.
+        </div>
+      </div>
+
+      <footer>
+        Demo • Secure Server Activation • For demonstration only
+      </footer>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Codes required by user
+  const SCAN_CODE = '770668';
+  const CASE_CODE = '778249';
+
+  const runBtn = document.getElementById('runBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const ipInput = document.getElementById('ip');
+  const secInput = document.getElementById('sec');
+  const scanArea = document.getElementById('scanArea');
+  const progressBar = document.getElementById('progressBar');
+  const scanStatus = document.getElementById('scanStatus');
+  const durationArea = document.getElementById('durationArea');
+  const caseArea = document.getElementById('caseArea');
+  const activateBtn = document.getElementById('activateBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
+  const loaderArea = document.getElementById('loaderArea');
+  const finalMsg = document.getElementById('finalMsg');
+  const finalText = document.getElementById('finalText');
+  const durationSelect = document.getElementById('duration');
+
+  let scanInterval = null;
+  let scanSeconds = 0;
+  let scanDuration = 120; // 2 minutes in seconds
+
+  function resetAll(){
+    clearInterval(scanInterval);
+    scanInterval = null;
+    scanSeconds = 0;
+    progressBar.style.width = '0%';
+    scanStatus.textContent = 'Waiting...';
+    scanArea.classList.add('hidden');
+    durationArea.classList.add('hidden');
+    caseArea.classList.add('hidden');
+    loaderArea.classList.add('hidden');
+    finalMsg.classList.add('hidden');
+  }
+
+  resetBtn.addEventListener('click', ()=>{
+    ipInput.value = '';
+    secInput.value = '';
+    document.getElementById('caseid').value = '';
+    resetAll();
+  });
+
+  runBtn.addEventListener('click', ()=>{
+    const ip = ipInput.value.trim();
+    const code = String(secInput.value).trim();
+    if(!ip){
+      alert('Please enter an IP address (demo).');
+      return;
+    }
+    if(code !== SCAN_CODE){
+      alert('Invalid security code. The scan will only run when the correct 6-digit code is entered.');
+      return;
+    }
+
+    // start simulated scan (2 minutes)
+    scanArea.classList.remove('hidden');
+    durationArea.classList.add('hidden');
+    caseArea.classList.add('hidden');
+    finalMsg.classList.add('hidden');
+    progressBar.style.width = '0%';
+    scanSeconds = 0;
+    scanStatus.textContent = 'Initializing analysis...';
+
+    // update every second
+    scanInterval = setInterval(()=>{
+      scanSeconds++;
+      const pct = Math.min(100, Math.round((scanSeconds / scanDuration) * 100));
+      progressBar.style.width = pct + '%';
+      // dynamic status messages at some checkpoints
+      if(scanSeconds < 10) scanStatus.textContent = 'Gathering network signatures...';
+      else if(scanSeconds < 30) scanStatus.textContent = 'Analyzing packet patterns...';
+      else if(scanSeconds < 60) scanStatus.textContent = 'Verifying encryption handshakes...';
+      else if(scanSeconds < 90) scanStatus.textContent = 'Cross-checking firewall policies...';
+      else if(scanSeconds < 119) scanStatus.textContent = 'Finalizing integrity checks...';
+      else scanStatus.textContent = 'Scan complete.';
+
+      if(scanSeconds >= scanDuration){
+        clearInterval(scanInterval);
+        progressBar.style.width = '100%';
+        scanStatus.textContent = 'Analysis complete.';
+        // show duration dropdown and case area
+        durationArea.classList.remove('hidden');
+        caseArea.classList.remove('hidden');
+      }
+    }, 1000);
+  });
+
+  activateBtn.addEventListener('click', ()=>{
+    const caseid = String(document.getElementById('caseid').value || '').trim();
+    if(caseid !== CASE_CODE){
+      alert('Invalid case ID. Activation requires the correct case ID.');
+      return;
+    }
+    // show 1-minute loader (60s) then success message
+    loaderArea.classList.remove('hidden');
+    caseArea.classList.add('hidden');
+    durationArea.classList.add('hidden');
+    finalMsg.classList.add('hidden');
+
+    // 60-second simulated loader
+    setTimeout(() => {
+      loaderArea.classList.add('hidden');
+      finalMsg.classList.remove('hidden');
+
+      // Determine message: user asked "server continue for 15 hours" and "it will stop at 9 AM"
+      // We present that text exactly, but clarify it's a demo.
+      const selected = durationSelect.value || '0-1';
+      finalText.innerHTML = `
+        Secure server activation complete.<br><br>
+        <strong>Server Code Activated:</strong> ${CASE_CODE}<br>
+        <strong>Selected window:</strong> ${selected} hours<br><br>
+        The secure server will continue on your network for <strong>15 hours</strong>. It is scheduled to automatically stop at <strong>09:00 AM</strong> (local time).<br><br>
+        <span style="font-size:12px;color:#d1f6dd">This is a demo activation message for testing only and not an official confirmation.</span>
+      `;
+    }, 60 * 1000); // 60 seconds
+  });
+
+  cancelBtn.addEventListener('click', ()=>{
+    resetAll();
+  });
+
+  // Initialize
+  resetAll();
+</script>
+</body>
+</html>
